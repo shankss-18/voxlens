@@ -38,22 +38,75 @@ You speak → Web Speech API transcribes → Flask backend receives question + p
 
 ## 🛠️ Setup
 
-### Chrome Extension
-1. Clone this repo
-2. Go to `chrome://extensions` → Enable **Developer Mode**
-3. Click **Load Unpacked** → select the `/extension` folder
+Follow these steps in order to get VoxLens running on your machine.
 
-### Python Backend
+---
+
+### Step 1 — Download the project
+
+**Option A: Using Git (recommended)**
 ```bash
-pip install flask groq requests
+git clone https://github.com/your-username/voxlens.git
+cd voxlens
+```
+
+**Option B: Download as ZIP**
+1. Go to the GitHub repo page
+2. Click the green **Code** button → **Download ZIP**
+3. Unzip the folder somewhere on your computer
+
+---
+
+### Step 2 — Add your API keys
+
+1. Inside the project backend folder, find the file called `.env`
+2. Replace the placeholder values with your actual keys:
+
+```
+GROQ_API_KEY=paste_your_groq_key_here
+MURF_API_KEY=paste_your_murf_key_here
+```
+
+> 🔑 Get your **Groq API key** at [console.groq.com](https://console.groq.com)
+> 🔑 Get your **Murf API key** at [murf.ai](https://murf.ai)
+
+Save the file when done.
+
+---
+
+### Step 3 — Start the Python backend
+
+Make sure you have Python 3 installed, then run:
+
+```bash
+pip install flask groq requests python-dotenv
 python app.py
 ```
 
-Add your API keys to a `.env` file:
+You should see something like:
 ```
-GROQ_API_KEY=your_key
-MURF_API_KEY=your_key
+* Running on http://127.0.0.1:5000
 ```
+Keep this terminal window open while using the extension.
+
+---
+
+### Step 4 — Load the extension into Chrome
+
+1. Open Chrome and go to `chrome://extensions` in the address bar
+2. Toggle on **Developer mode** (top-right corner)
+3. Click **Load unpacked**
+4. Select the `/extension` folder inside the project directory
+5. VoxLens will appear in your extensions list — pin it to your toolbar for easy access
+
+---
+
+### Step 5 — Try it out!
+
+1. Navigate to any webpage
+2. Click the VoxLens icon in your Chrome toolbar
+3. Hit the 🎤 mic button and ask a question about the page
+4. Listen to the answer!
 
 ---
 
