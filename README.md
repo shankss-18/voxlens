@@ -127,6 +127,4 @@ Keep this terminal window open while using the extension.
 - [Murf AI](https://murf.ai) — Falcon text-to-speech
 - Web Speech API
 
----
 
-Built with ❤️ at [Hackathon Name]
