@@ -1,9 +1,7 @@
-// AUTO SWITCH between LOCAL and RENDER server
-
 const LOCAL_API  = "http://localhost:5000/analyze";
+//RENDER_API is our backup server which comes into action when local python server is not running properly 
 const RENDER_API = "https://voxlens-backend.onrender.com/analyze";
 
-// Detect if extension is running locally or published
 const isLocalDev =
   location.hostname === "localhost" ||
   location.hostname === "127.0.0.1";
@@ -12,7 +10,6 @@ const BACKEND_URL = isLocalDev ? LOCAL_API : RENDER_API;
 
 console.log("Using backend:", BACKEND_URL);
 
-// Manual override switch (true = force Render)
 const FORCE_RENDER = false;
 
 if (FORCE_RENDER) {
@@ -35,7 +32,6 @@ let isSpeaking          = false;
 let isPaused            = false;
 let recognition         = null;
 
-// Single SpeechSynthesisUtterance reference so pause/stop work reliably
 let currentUtterance    = null;
 let currentAudio        = null;  // for Murf MP3
 
