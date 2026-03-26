@@ -72,27 +72,56 @@ function initRecognition() {
 }
 
 // ------------------ MIC BUTTON ------------------
-
-micBtn.addEventListener('click', () => {
+micBtn.addEventListener('click', async () => {
   if (isSpeaking) return;
 
   if (isListening) {
     if (recognition) { try { recognition.stop(); } catch(e) {} }
     isListening = false;
     setUIState('thinking', 'processing...');
-  } else {
-    recognition = initRecognition();
-    if (!recognition) return;
-    try {
-      recognition.start();
-      isListening = true;
-      setUIState('listening');
-    } catch(e) {
-      setUIState('idle', 'mic error: ' + e.message);
+    return;
+  }
+
+  // Check if mic permission already granted
+  try {
+    const permStatus = await navigator.permissions.query({ name: 'microphone' });
+
+    if (permStatus.state === 'denied') {
+      setUIState('idle', 'mic blocked — reset in chrome://settings/content/microphone');
+      return;
     }
+
+    if (permStatus.state === 'prompt') {
+      // Open the permission page in a new tab to trigger the prompt
+      // (popup context can't reliably trigger getUserMedia)
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('mic-permission.html'),
+        active: true
+      });
+      setUIState('idle', 'allow mic in the tab that just opened, then try again');
+      return;
+    }
+
+    // permStatus.state === 'granted' — proceed directly
+    startRecognition();
+
+  } catch (err) {
+    // permissions.query not supported — try directly
+    startRecognition();
   }
 });
 
+function startRecognition() {
+  recognition = initRecognition();
+  if (!recognition) return;
+  try {
+    recognition.start();
+    isListening = true;
+    setUIState('listening');
+  } catch(e) {
+    setUIState('idle', 'mic error: ' + e.message);
+  }
+}
 // ------------------ HANDLE SPEECH RESULT ------------------
 
 function handleSpeechResult(question) {
