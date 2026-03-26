@@ -11,7 +11,3 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ content: text });
   }
 });
-
-window.addEventListener('beforeunload', () => {
-  chrome.runtime.sendMessage({ action: 'clearHistory' });
-});
