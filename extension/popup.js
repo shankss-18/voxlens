@@ -1,4 +1,23 @@
-const BACKEND_URL = "http://localhost:5000/analyze";
+// AUTO SWITCH between LOCAL and RENDER server
+
+const LOCAL_API  = "http://localhost:5000/analyze";
+const RENDER_API = "https://voxlens-backend.onrender.com/analyze";
+
+// Detect if extension is running locally or published
+const isLocalDev =
+  location.hostname === "localhost" ||
+  location.hostname === "127.0.0.1";
+
+const BACKEND_URL = isLocalDev ? LOCAL_API : RENDER_API;
+
+console.log("Using backend:", BACKEND_URL);
+
+// Manual override switch (true = force Render)
+const FORCE_RENDER = false;
+
+if (FORCE_RENDER) {
+  BACKEND_URL = RENDER_API;
+}
 
 const LANG_MAP = {
   'auto': 'en-IN',
