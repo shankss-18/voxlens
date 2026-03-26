@@ -1,4 +1,3 @@
-
 const BACKEND_URL = "http://localhost:5000/analyze";
 
 const LANG_MAP = {
@@ -8,249 +7,323 @@ const LANG_MAP = {
   'te':   'te-IN'
 };
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
-recognition.interimResults = false;
-recognition.continuous     = false;
-
 let conversationHistory = [];
 let savedBubbles        = [];
 let originalTabId       = null;
+
 let isListening         = false;
 let isSpeaking          = false;
 let isPaused            = false;
-let currentAudio        = null;
-let recognitionTimeout  = null;
+let recognition         = null;
 
-function killAllAudio() {
-  if (currentAudio) {
-    currentAudio.onended  = null;
-    currentAudio.onerror  = null;
-    currentAudio.pause();
-    currentAudio.src      = '';
-    currentAudio          = null;
-  }
+// Single SpeechSynthesisUtterance reference so pause/stop work reliably
+let currentUtterance    = null;
+let currentAudio        = null;  // for Murf MP3
 
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.cancel();
-  setTimeout(() => window.speechSynthesis.cancel(), 50);
-  setTimeout(() => window.speechSynthesis.cancel(), 150);
-  setTimeout(() => window.speechSynthesis.cancel(), 300);
+// ------------------ INIT ------------------
 
-  isSpeaking = false;
-  isPaused   = false;
-}
-chrome.runtime.sendMessage({ action: 'loadHistory' }, (data) => {
-  if (data && data.conversationHistory) conversationHistory = data.conversationHistory;
-  if (data && data.chatHistory) {
+chrome.storage.session.get(['lastActiveTabId', 'chatHistory', 'conversationHistory'], (data) => {
+  if (chrome.runtime.lastError) return;
+  if (data.lastActiveTabId) originalTabId = data.lastActiveTabId;
+  if (data.conversationHistory) conversationHistory = data.conversationHistory;
+  if (data.chatHistory) {
     savedBubbles = data.chatHistory;
     data.chatHistory.forEach(msg => addMessage(msg.role, msg.text));
   }
+  setUIState('ready', 'tap to speak');
 });
 
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  if (tabs && tabs.length > 0) {
-    originalTabId = tabs[0].id;
-    setUIState('ready', 'tap to speak');
+// ------------------ SPEECH RECOGNITION ------------------
+
+function initRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setUIState('idle', 'speech recognition not supported');
+    return null;
+  }
+
+  const rec = new SR();
+  rec.interimResults = false;
+  rec.continuous     = false;
+  rec.maxAlternatives = 1;
+  rec.lang = LANG_MAP[langSelect.value] || 'en-IN';
+
+  rec.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    isListening = false;
+    handleSpeechResult(transcript);
+  };
+
+  rec.onerror = (e) => {
+    isListening = false;
+    setUIState('idle', e.error === 'not-allowed'
+      ? 'allow mic in Chrome site settings'
+      : 'mic error: ' + e.error);
+  };
+
+  rec.onend = () => {
+    if (isListening) {
+      isListening = false;
+      setUIState('ready', 'tap to speak');
+    }
+  };
+
+  return rec;
+}
+
+// ------------------ MIC BUTTON ------------------
+
+micBtn.addEventListener('click', () => {
+  if (isSpeaking) return;
+
+  if (isListening) {
+    if (recognition) { try { recognition.stop(); } catch(e) {} }
+    isListening = false;
+    setUIState('thinking', 'processing...');
   } else {
-    setUIState('idle', 'could not detect tab');
+    recognition = initRecognition();
+    if (!recognition) return;
+    try {
+      recognition.start();
+      isListening = true;
+      setUIState('listening');
+    } catch(e) {
+      setUIState('idle', 'mic error: ' + e.message);
+    }
   }
 });
 
-function saveHistory() {
-  chrome.runtime.sendMessage({
-    action: 'saveHistory',
-    chatHistory: savedBubbles,
-    conversationHistory
+// ------------------ HANDLE SPEECH RESULT ------------------
+
+function handleSpeechResult(question) {
+  isListening = false;
+  addMessageAndSave('user', question);
+  setUIState('thinking', `"${question}"`);
+  processQuestion(question);
+}
+
+// ------------------ PROCESS QUESTION ------------------
+
+function processQuestion(question) {
+  // Re-fetch latest tab ID in case user switched tabs
+  chrome.storage.session.get('lastActiveTabId', (data) => {
+    if (data.lastActiveTabId) originalTabId = data.lastActiveTabId;
+
+    if (!originalTabId) {
+      setUIState('idle', 'switch to a webpage first');
+      return;
+    }
+
+    chrome.tabs.get(originalTabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) {
+        setUIState('idle', 'target tab closed — switch to a webpage');
+        return;
+      }
+
+      // Use scripting.executeScript — no content script dependency
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: originalTabId },
+          func: () => {
+            const main = document.querySelector('article') ||
+                         document.querySelector('main') ||
+                         document.body;
+            let text = (main.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+            return text.substring(0, 3000);
+          }
+        },
+        async (results) => {
+          if (chrome.runtime.lastError || !results || !results[0]) {
+            setUIState('idle', 'cannot read page — try refreshing it');
+            return;
+          }
+
+          const pageContent = results[0].result;
+          if (!pageContent) {
+            setUIState('idle', 'page appears empty');
+            return;
+          }
+
+          try {
+            const res = await fetch(BACKEND_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                question,
+                pageContent,
+                history: conversationHistory,
+                lang: langSelect.value
+              })
+            });
+
+            const responseData = await res.json();
+            const answerText   = responseData.text;
+
+            conversationHistory.push({ role: 'user',      content: question   });
+            conversationHistory.push({ role: 'assistant', content: answerText });
+
+            addMessageAndSave('assistant', answerText);
+            speakText(answerText, responseData.audio);
+
+          } catch (err) {
+            console.error(err);
+            setUIState('idle', 'backend not running');
+            addMessageAndSave('assistant', 'Backend not reachable.');
+          }
+        }
+      );
+    });
   });
 }
+
+// ------------------ AUDIO ------------------
+
+function speakText(text, audioBase64) {
+  // Always cancel any ongoing speech first
+  stopAllAudio();
+
+  isSpeaking = true;
+  isPaused   = false;
+  setUIState('speaking');
+
+  if (audioBase64) {
+    currentAudio = new Audio('data:audio/mp3;base64,' + audioBase64);
+    currentAudio.onended = onSpeakingDone;
+    currentAudio.onerror = () => {
+      currentAudio = null;
+      fallbackTTS(text);
+    };
+    currentAudio.play().catch(() => fallbackTTS(text));
+  } else {
+    fallbackTTS(text);
+  }
+}
+
+function fallbackTTS(text) {
+  // Cancel any leftover synthesis
+  window.speechSynthesis.cancel();
+
+  const lang = langSelect.value;
+  currentUtterance = new SpeechSynthesisUtterance(text);
+  currentUtterance.lang  = lang === 'hi' ? 'hi-IN' : lang === 'te' ? 'te-IN' : 'en-IN';
+  currentUtterance.rate  = 0.95;
+  currentUtterance.pitch = 1;
+
+  currentUtterance.onstart = () => {
+    setUIState('speaking', 'speaking...');
+  };
+
+  currentUtterance.onend = () => {
+    currentUtterance = null;
+    onSpeakingDone();
+  };
+
+  currentUtterance.onerror = (e) => {
+    // 'interrupted'/'canceled' fires when we deliberately cancel — ignore
+    currentUtterance = null;
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    console.warn('TTS error:', e.error);
+    onSpeakingDone();
+  };
+
+  window.speechSynthesis.speak(currentUtterance);
+}
+
+function stopAllAudio() {
+  // Stop Murf MP3
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.src = '';
+    currentAudio = null;
+  }
+  // Stop system TTS — setting currentUtterance to null BEFORE cancel
+  // prevents the onerror handler from calling onSpeakingDone unexpectedly
+  currentUtterance = null;
+  window.speechSynthesis.cancel();
+}
+
+function onSpeakingDone() {
+  if (!isSpeaking) return;
+  isSpeaking = false;
+  isPaused   = false;
+  setUIState('ready', 'tap to speak');
+}
+
+// ------------------ HISTORY ------------------
 
 function addMessageAndSave(role, text) {
   addMessage(role, text);
   savedBubbles.push({ role, text });
-  saveHistory();
+  chrome.storage.session.set({ chatHistory: savedBubbles, conversationHistory });
 }
 
-langSelect.addEventListener('change', () => {
-  recognition.lang = LANG_MAP[langSelect.value] || 'en-IN';
-});
-recognition.lang = LANG_MAP['auto'];
-
-micBtn.addEventListener('click', () => {
-  if (isSpeaking) return;
-  isListening ? stopListening() : startListening();
-});
-
-function startListening() {
-  try {
-    recognition.start();
-    isListening = true;
-    setUIState('listening');
-
-    recognitionTimeout = setTimeout(() => {
-      if (isListening) {
-        recognition.abort();
-        isListening = false;
-        setUIState('ready', 'tap to speak');
-      }
-    }, 10000);
-
-  } catch (e) {
-    recognition.abort();
-    setTimeout(() => {
-      recognition.start();
-      isListening = true;
-      setUIState('listening');
-    }, 300);
-  }
-}
-
-function stopListening() {
-  clearTimeout(recognitionTimeout);
-  recognition.stop();
-  isListening = false;
-  setUIState('thinking', 'processing...');
-}
+// ------------------ PAUSE / STOP CONTROLS ------------------
 
 pauseBtn.addEventListener('click', () => {
   if (!isSpeaking) return;
 
   if (currentAudio) {
-    isPaused ? currentAudio.play() : currentAudio.pause();
+    // Murf MP3 pause/resume
+    if (isPaused) {
+      currentAudio.play();
+    } else {
+      currentAudio.pause();
+    }
   } else {
-    isPaused ? window.speechSynthesis.resume() : window.speechSynthesis.pause();
+    // System TTS pause/resume
+    if (isPaused) {
+      window.speechSynthesis.resume();
+    } else {
+      window.speechSynthesis.pause();
+    }
   }
 
-  isPaused               = !isPaused;
+  isPaused = !isPaused;
   pauseBtn.textContent   = isPaused ? '▶ resume' : '⏸ pause';
-  statusText.textContent = isPaused ? 'paused — click ▶ to resume' : 'speaking...';
+  statusText.textContent = isPaused ? 'paused'   : 'speaking...';
 });
 
 stopBtn.addEventListener('click', () => {
   if (!isSpeaking) return;
-  killAllAudio();
+
+  // Set flags FIRST so onend/onerror handlers become no-ops when cancel fires
+  isSpeaking       = false;
+  isPaused         = false;
+  currentUtterance = null;
+
+  // Stop Murf MP3
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.src = '';
+    currentAudio = null;
+  }
+
+  // Chrome re-queues speech after a single cancel — cancel repeatedly
+  window.speechSynthesis.cancel();
+  setTimeout(() => window.speechSynthesis.cancel(), 50);
+  setTimeout(() => window.speechSynthesis.cancel(), 150);
+
   setUIState('ready', 'tap to speak');
 });
+
+// ------------------ CLEAR ------------------
 
 document.getElementById('clearBtn').addEventListener('click', () => {
-  killAllAudio();
+  stopAllAudio();
+  isSpeaking = false;
+  isPaused   = false;
 
   document.getElementById('chatHistory').innerHTML = '';
-  conversationHistory.length = 0;
-  savedBubbles               = [];
-  chrome.runtime.sendMessage({ action: 'clearHistory' });
+  conversationHistory = [];
+  savedBubbles        = [];
+
+  chrome.storage.session.remove(['chatHistory', 'conversationHistory']);
   setUIState('ready', 'tap to speak');
 });
 
-recognition.onresult = async (event) => {
-  clearTimeout(recognitionTimeout);
-  isListening        = false;
-  const question     = event.results[0][0].transcript;
-
-  setUIState('thinking', `"${question}"`);
-  addMessageAndSave('user', question);
-
-  if (!originalTabId) { setUIState('idle', 'no tab found'); return; }
-
-  chrome.tabs.sendMessage(originalTabId, { action: 'getPageContent' }, async (response) => {
-    if (chrome.runtime.lastError) { setUIState('idle', 'refresh the page and retry'); return; }
-    if (!response || !response.content) { setUIState('idle', 'could not read page'); return; }
-
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          question,
-          pageContent: response.content,
-          history:     conversationHistory,
-          lang:        langSelect.value
-        })
-      });
-
-      const data       = await res.json();
-      const answerText = data.text;
-
-      conversationHistory.push({ role: 'user',      content: question });
-      conversationHistory.push({ role: 'assistant', content: answerText });
-
-      addMessageAndSave('assistant', answerText);
-      isSpeaking = true;
-      isPaused   = false;
-      setUIState('speaking');
-
-      if (data.audio) {
-        currentAudio         = new Audio('data:audio/mp3;base64,' + data.audio);
-        currentAudio.onended = onSpeakingDone;
-        currentAudio.onerror = () => {
-          currentAudio = null;
-          fallbackTTS(answerText);
-        };
-        currentAudio.play();
-      } else {
-        currentAudio = null;
-        fallbackTTS(answerText);
-      }
-
-    } catch (err) {
-      setUIState('idle', 'flask not running — check backend');
-      addMessageAndSave('assistant', 'Backend not reachable. Check if Flask is running.');
-    }
-  });
-};
-
-recognition.onerror = (event) => {
-  clearTimeout(recognitionTimeout);
-  isListening = false;
-
-  if (event.error === 'aborted') {
-    setUIState('ready', 'tap to speak');
-    return;
-  }
-  if (event.error === 'language-not-supported') {
-    recognition.lang = 'en-IN';
-    setUIState('ready', 'lang unsupported, switched to EN');
-    return;
-  }
-  if (event.error === 'no-speech') {
-    setUIState('ready', 'no speech detected');
-    return;
-  }
-
-  setUIState('idle', 'mic error: ' + event.error);
-};
-
-recognition.onend = () => {
-  clearTimeout(recognitionTimeout);
-  if (isListening) {
-    isListening = false;
-    setUIState('ready', 'tap to speak');
-  }
-};
-
-function fallbackTTS(text) {
-  window.speechSynthesis.cancel();
-
-  const utter    = new SpeechSynthesisUtterance(text);
-  const langCode = langSelect.value;
-  utter.lang     = langCode === 'hi' ? 'hi-IN' : langCode === 'te' ? 'te-IN' : 'en-IN';
-  utter.rate     = 0.95;
-  utter.pitch    = 1;
-  utter.onend    = onSpeakingDone;
-  utter.onerror  = onSpeakingDone;
-
-  window.speechSynthesis.speak(utter);
-  setUIState('speaking', 'speaking (system voice)...');
-}
-
-function onSpeakingDone() {
-  if (!isSpeaking) return;
-  isSpeaking   = false;
-  isPaused     = false;
-  currentAudio = null;
-  setUIState('ready', 'tap to speak');
-}
+// ------------------ CLEANUP ------------------
 
 window.addEventListener('unload', () => {
-  killAllAudio();
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  stopAllAudio();
 });
