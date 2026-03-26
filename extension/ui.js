@@ -14,6 +14,7 @@ const bars = Array.from({ length: 10 }, (_, i) => document.getElementById('wb' +
 let waveInterval = null;
 
 function setUIState(state, text) {
+  // Reset UI
   micBtn.className     = 'mic-btn';
   micBtn.style.opacity = '1';
   micWrap.className    = 'mic-wrap';
@@ -31,8 +32,10 @@ function setUIState(state, text) {
     micBtn.classList.add('listening');
     micWrap.classList.add('listening');
     dot.classList.add('rec');
+
     statusText.classList.add('active');
     statusText.textContent = text || 'listening... click to stop';
+
     wave.classList.add('visible');
     waveInterval = setInterval(() => {
       bars.forEach(b => b.style.height = (Math.random() * 14 + 3) + 'px');
@@ -40,6 +43,7 @@ function setUIState(state, text) {
 
   } else if (state === 'thinking') {
     dot.classList.add('on');
+
     statusText.classList.add('active');
     statusText.textContent = text || 'thinking...';
 
@@ -47,10 +51,13 @@ function setUIState(state, text) {
     micBtn.classList.add('speaking');
     micWrap.classList.add('speaking');
     dot.classList.add('on');
+
     statusText.classList.add('accent');
     statusText.textContent = text || 'speaking...';
+
     wave.classList.add('visible');
     voiceControls.style.display = 'flex';
+
     waveInterval = setInterval(() => {
       bars.forEach(b => b.style.height = (Math.random() * 16 + 3) + 'px');
     }, 80);
@@ -64,6 +71,7 @@ function setUIState(state, text) {
   }
 }
 
+// Add chat message to UI
 function addMessage(role, text) {
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + role;
@@ -79,9 +87,11 @@ function addMessage(role, text) {
   wrap.appendChild(label);
   wrap.appendChild(bubble);
   chatHistory.appendChild(wrap);
+
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
+// Spacebar shortcut for mic
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && e.target === document.body) {
     e.preventDefault();
