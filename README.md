@@ -1,4 +1,3 @@
-
 # 🎙️ VoxLens
 
 ### Talk to any webpage using your voice — in English, Hindi, or Telugu
@@ -11,158 +10,200 @@
 
 VoxLens is a Chrome extension that lets you **ask questions about any webpage using your voice** and get spoken answers back — instantly, in your language.
 
-Open the extension, tap the mic, ask *"What is this page about?"* or *"Summarise the key points"* — VoxLens reads the page, sends your question to an LLM, and speaks the answer back using a natural AI voice.
+Open the extension, tap the mic, ask *“What is this page about?”* or *“Summarise the key points”* — VoxLens reads the page, sends your question to an LLM, and speaks the answer back using a natural AI voice.
 
-### How it works
+---
+
+## 🧠 How it works
 
 ```
-You speak  →  Chrome SpeechRecognition  →  Flask backend
+You speak  →  Chrome SpeechRecognition  →  VoxLens Backend
                                                   ↓
                                          Groq (LLaMA 3.3 70B)
-                                         reads the page content
+                                         reads webpage content
                                                   ↓
                                          Murf AI generates voice
                                                   ↓
                                     Answer spoken back to you 🔊
 ```
 
-### Key Features
+---
 
-- 🎤 **Voice input** — speak naturally, no typing needed
-- 🌐 **Multilingual** — English, Hindi (हिन्दी), Telugu (తెలుగు)
-- 🧠 **Context-aware** — remembers conversation history within a session
-- 🔊 **AI voice output** — Murf AI TTS with system voice fallback
-- ⚡ **Fast** — Groq's LLaMA 3.3 70B for near-instant responses
-- 🛑 **Pause / Stop** — full playback controls
+## ✨ Key Features
+
+* 🎤 **Voice-first browsing** — ask questions instead of typing
+* 🌐 **Multilingual** — English, Hindi (हिन्दी), Telugu (తెలుగు)
+* 🧠 **Context aware** — remembers conversation during session
+* 🔊 **AI voice output** — Murf AI TTS + system fallback
+* ⚡ **Fast responses** — Groq LLaMA 3.3 70B
+* ⏸️ **Playback controls** — pause / resume / stop
 
 ---
 
-## 🚀 Setup
+# 🚀 Quick Start (For Judges)
 
-### Prerequisites
+### ⭐ No backend setup required
 
-- Python 3.9+
-- Google Chrome
-- A [Groq API key](https://console.groq.com) *(free)*
-- A [Murf AI API key](https://murf.ai) *(free tier available)*
+We have already deployed the backend on the internet.
+You can test the extension immediately.
+
+👉 Just follow **2 steps** below.
 
 ---
 
-### 1. Clone the repo
+## 1️⃣ Load the Chrome Extension
+
+1. Download or clone this repository
 
 ```bash
 git clone https://github.com/yourname/voxlens.git
-cd voxlens
 ```
+
+2. Open Chrome → go to:
+
+```
+chrome://extensions
+```
+
+3. Enable **Developer Mode**
+4. Click **Load unpacked**
+5. Select the **extension/** folder
+
+You will now see the **VoxLens icon** in the toolbar.
 
 ---
 
-### 2. Set up the backend
+## 2️⃣ Allow Microphone Access
+
+When you click the mic for the first time, Chrome will ask for permission.
+
+Click **Allow microphone** ✅
+
+If permission popup doesn’t appear:
+
+Go to
+Chrome Settings → Privacy & Security → Site Settings → Microphone
+Allow Chrome Extensions.
+
+---
+
+## 🎮 How to Use VoxLens
+
+1. Open **any webpage** (news, blog, Wikipedia, docs, etc.)
+2. Click the **VoxLens icon**
+3. Choose language (Auto / EN / हिन्दी / తెలుగు)
+4. Click the **mic button**
+5. Ask a question about the page
+6. Hear the spoken AI answer 🔊
+
+💬 Ask follow-up questions — VoxLens remembers context.
+
+---
+
+# 🧪 Example Questions to Try
+
+* “What is this page about?”
+* “Summarise the key points”
+* “Explain this in simple words”
+* “Give me 5 bullet points”
+* “Translate this to Hindi”
+* “Explain this for beginners”
+
+---
+
+# 🛠️ Optional — Run Backend Locally (Developers)
+
+If you want to run your own backend:
+
+### Prerequisites
+
+* Python 3.9+
+* Groq API key
+* Murf AI API key
+
+### Backend Setup
 
 ```bash
 cd backend
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-Create a `.env` file inside the `backend/` folder:
+Create `.env` inside **backend/**
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-MURF_API_KEY=your_murf_api_key_here
+GROQ_API_KEY=your_key
+MURF_API_KEY=your_key
 ```
 
-Start the backend server:
+Run server:
 
 ```bash
 python app.py
 ```
 
-You should see:
+Backend will run on:
+
 ```
-* Running on http://127.0.0.1:5000
+http://127.0.0.1:5000
 ```
 
-> Keep this terminal running while using the extension.
+The extension automatically detects local backend during development.
 
 ---
 
-### 3. Load the extension in Chrome
-
-1. Open Chrome and go to `chrome://extensions`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Select the `extension/` folder from this repo
-5. The VoxLens icon will appear in your toolbar
-
----
-
-### 4. Allow microphone access
-
-When you first click the mic, Chrome will ask for microphone permission — click **Allow**.
-
-If you see *"allow mic in Chrome site settings"*, go to:
-`Chrome Settings → Privacy → Site Settings → Microphone` and allow the extension.
-
----
-
-## 🎮 Usage
-
-1. Navigate to **any webpage** you want to ask about
-2. Click the **VoxLens icon** in the Chrome toolbar
-3. Select your language (auto / EN / हि / తె)
-4. Click the **mic button** and ask your question
-5. VoxLens reads the page and speaks the answer back
-6. Ask follow-up questions — it remembers the conversation
-
----
-
-## 🗂️ Project Structure
+# 🗂️ Project Structure
 
 ```
 voxlens/
 ├── backend/
-│   ├── app.py              # Flask server — handles LLM + TTS
-│   ├── requirements.txt    # Python dependencies
-│   └── .env                # API keys (create this yourself)
+│   ├── app.py
+│   ├── requirements.txt
+│   └── .env (local only)
 └── extension/
-    ├── manifest.json       # Chrome extension config
-    ├── popup.html          # Extension UI
-    ├── popup.js            # Core logic — mic, speech, fetch
-    ├── ui.js               # UI state management
-    ├── background.js       # Tab tracking service worker
-    ├── content.js          # Page content extractor
-    ├── pills.js            # Language selector
+    ├── manifest.json
+    ├── popup.html
+    ├── popup.js
+    ├── ui.js
+    ├── background.js
+    ├── content.js
+    ├── pills.js
     └── icons/
-        └── logo.png
 ```
 
 ---
 
-## 🛠️ Tech Stack
+# 🧰 Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Voice Input | Web Speech API (Chrome built-in) |
-| LLM | Groq — LLaMA 3.3 70B Versatile |
-| Text-to-Speech | Murf AI (GEN2) + system TTS fallback |
-| Backend | Python / Flask |
-| Extension | Chrome MV3 |
+| Layer          | Technology           |
+| -------------- | -------------------- |
+| Voice Input    | Web Speech API       |
+| LLM            | Groq — LLaMA 3.3 70B |
+| Text-to-Speech | Murf AI              |
+| Backend        | Python Flask         |
+| Extension      | Chrome Manifest V3   |
+
+---
+
+# 🌟 Why VoxLens?
+
+Most people **read the web**.
+VoxLens lets you **talk to the web**.
+
+Perfect for:
+
+* Accessibility
+* Multitasking
+* Faster learning
+* Language inclusion
 
 ---
 
-## ⚙️ requirements.txt
 
-```
-flask
-flask-cors
-groq
-python-dotenv
-requests
-```
+This project demonstrates:
 
----
+* Voice UX
+* LLM integration
+* Real-time TTS
+* Chrome Extension architecture
+* Full-stack AI deployment
+
