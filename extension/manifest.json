@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Voxlens",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Talk to any webpage using your voice",
 
   "icons": {
@@ -13,7 +13,6 @@
 
   "action": {
     "default_title": "VoxLens",
-    "default_popup": "popup.html",
     "default_icon": "icons/logo.png"
   },
 
@@ -34,16 +33,24 @@
   ],
 
   "web_accessible_resources": [
-  {
-    "resources": ["mic-permission.html", "mic-permission.js"],
-    "matches": ["<all_urls>"]
-  }
-],
+    {
+      "resources": [
+        "popup.html",
+        "popup.js",
+        "ui.js",
+        "pills.js",
+        "mic-permission.html",
+        "mic-permission.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
 
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "all_frames": true
     }
   ]
 }
