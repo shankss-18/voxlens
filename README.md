@@ -16,29 +16,31 @@ Open the extension, tap the mic, ask *“What is this page about?”* or *“Sum
 
 ## 🧠 System Architecture & Workflow
 
-VoxLens operates on a streamlined, low-latency architecture designed for instant voice interactions:
+VoxLens operates on a streamlined, low-latency agentic architecture designed for instant voice queries and browser control:
 
-1. **User Input:** The user speaks a question into the extension (handled by Chrome's native SpeechRecognition API).
-2. **Context Extraction:** The extension extracts the textual content of the currently active webpage.
+1. **User Input:** The user speaks a command or question (handled by Chrome's native SpeechRecognition API).
+2. **Context & DOM Extraction:** The extension extracts exactly what's visible on the page, including text content and actionable DOM elements.
 3. **Query Processing:** The transcription and page context are securely sent to the **VoxLens Backend**.
-4. **LLM Inference:** The backend calls the **Groq API (LLaMA 3.3 70B)** to generate a contextual, accurate answer based *only* on the webpage's content.
-5. **Voice Generation:** The text response is routed to the **Murf AI API**, which synthesizes a high-fidelity, natural-sounding audio response.
+4. **LLM Inference (Agentic Decisions):** The backend calls the **Groq API (LLaMA 3.3 70B)** which analyzes the query to either generate a contextual textual answer *or* identify an action to execute.
+5. **Action Execution & Voice Generation:** 
+   - **Action:** If the intent is to control the page (e.g., "scroll down", "click login"), the extension directly executes the corresponding JavaScript on the DOM.
+   - **Answer:** If the intent is informational, the text response is routed to the **Murf AI API**, synthesizing a high-fidelity audio response.
 6. **Playback:** The audio is returned to the browser and played back to the user smoothly.
 
 ---
 
-## ✨ Key Features (Hackathon Highlights)
+## ✨ Key Features 
 
-* 🎤 **Voice-First Navigation** — Seamlessly query webpage content using natural voice commands without typing.
+* 🤖 **Agentic Webpage Control** — Fully operate the browser hands-free. Command VoxLens to scroll, click links, and navigate across elements using just your voice.
+* 🎤 **Voice-First Querying** — Seamlessly query webpage content and ask complex questions using natural language.
 * 🌐 **Multilingual Support** — Fully supports interactions in English, Hindi (हिन्दी), and Telugu (తెలుగు), breaking language barriers.
-* 🧠 **LLM-Powered Context Awareness** — Groq's LLaMA 3.3 70B model dynamically reads the active webpage and maintains conversational context throughout the session.
+* 🧠 **LLM-Powered Context Awareness** — Groq's LLaMA 3.3 70B model dynamically reads the active DOM and maintains conversational context throughout the session without hallucinating unseen elements.
 * 🔊 **Hyper-Realistic AI Voice** — Utilizes Murf AI's premium Text-to-Speech engine for natural, human-like responses (with intelligent built-in system fallback).
-* ⚡ **Ultra-Low Latency** — Blazing-fast inference and streaming architecture ensure near-instantaneous responses.
-* ⏸️ **Advanced Playback Controls** — Full user agency with play, pause, resume, and stop functionality for spoken answers.
+* ⚡ **Ultra-Low Latency** — Blazing-fast inference and streaming architecture ensure near-instantaneous responses and executions.
 
 ---
 
-# 🚀 Quick Start (For Judges)
+# 🚀 Quick Start 
 
 ### ⭐ No backend setup required
 
