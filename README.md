@@ -14,29 +14,27 @@ Open the extension, tap the mic, ask *“What is this page about?”* or *“Sum
 
 ---
 
-## 🧠 How it works
+## 🧠 System Architecture & Workflow
 
-```
-You speak  →  Chrome SpeechRecognition  →  VoxLens Backend
-                                                  ↓
-                                         Groq (LLaMA 3.3 70B)
-                                         reads webpage content
-                                                  ↓
-                                         Murf AI generates voice
-                                                  ↓
-                                    Answer spoken back to you 🔊
-```
+VoxLens operates on a streamlined, low-latency architecture designed for instant voice interactions:
+
+1. **User Input:** The user speaks a question into the extension (handled by Chrome's native SpeechRecognition API).
+2. **Context Extraction:** The extension extracts the textual content of the currently active webpage.
+3. **Query Processing:** The transcription and page context are securely sent to the **VoxLens Backend**.
+4. **LLM Inference:** The backend calls the **Groq API (LLaMA 3.3 70B)** to generate a contextual, accurate answer based *only* on the webpage's content.
+5. **Voice Generation:** The text response is routed to the **Murf AI API**, which synthesizes a high-fidelity, natural-sounding audio response.
+6. **Playback:** The audio is returned to the browser and played back to the user smoothly.
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features (Hackathon Highlights)
 
-* 🎤 **Voice-first browsing** — ask questions instead of typing
-* 🌐 **Multilingual** — English, Hindi (हिन्दी), Telugu (తెలుగు)
-* 🧠 **Context aware** — remembers conversation during session
-* 🔊 **AI voice output** — Murf AI TTS + system fallback
-* ⚡ **Fast responses** — Groq LLaMA 3.3 70B
-* ⏸️ **Playback controls** — pause / resume / stop
+* 🎤 **Voice-First Navigation** — Seamlessly query webpage content using natural voice commands without typing.
+* 🌐 **Multilingual Support** — Fully supports interactions in English, Hindi (हिन्दी), and Telugu (తెలుగు), breaking language barriers.
+* 🧠 **LLM-Powered Context Awareness** — Groq's LLaMA 3.3 70B model dynamically reads the active webpage and maintains conversational context throughout the session.
+* 🔊 **Hyper-Realistic AI Voice** — Utilizes Murf AI's premium Text-to-Speech engine for natural, human-like responses (with intelligent built-in system fallback).
+* ⚡ **Ultra-Low Latency** — Blazing-fast inference and streaming architecture ensure near-instantaneous responses.
+* ⏸️ **Advanced Playback Controls** — Full user agency with play, pause, resume, and stop functionality for spoken answers.
 
 ---
 
