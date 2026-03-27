@@ -22,8 +22,8 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      width: 340px;
-      height: 460px;
+      width: 100%;
+      height: 100vh;
       background: var(--bg);
       color: var(--text);
       font-family: 'DM Mono', monospace;
@@ -171,6 +171,51 @@
       flex-shrink: 0;
     }
 
+    .chat-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input::placeholder { color: #666; }
+    .chat-input:focus { border-color: rgba(232,255,107,0.4); }
+
+    .send-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid rgba(232,255,107,0.3);
+      background: rgba(232,255,107,0.08);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .send-btn:hover {
+      background: rgba(232,255,107,0.18);
+      border-color: rgba(232,255,107,0.5);
+    }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn svg { width: 14px; height: 14px; }
+
     .mic-row {
       display: flex;
       align-items: center;
@@ -311,7 +356,7 @@
     }
     
 
-    .clear-btn {
+    .clear-btn, .export-btn {
       font-family: 'DM Mono', monospace;
       font-size: 9px;
       color: #999;
@@ -323,7 +368,10 @@
       letter-spacing: 0.06em;
       transition: color 0.2s, border-color 0.2s;
     }
-    .clear-btn:hover { color: #f0f0f0; border-color: var(--border-bright); }
+    .clear-btn:hover, .export-btn:hover { color: #f0f0f0; border-color: var(--border-bright); }
+    .export-btn { color: var(--accent); border-color: rgba(232,255,107,0.25); }
+    .export-btn:hover { color: var(--accent); border-color: rgba(232,255,107,0.5); }
+    .action-btns { display: flex; gap: 6px; }
 
     #langSelect { display: none; }
   </style>
@@ -356,6 +404,15 @@
   </select>
 
   <div class="chat-history" id="chatHistory"></div>
+
+  <div class="chat-input-bar">
+    <input type="text" class="chat-input" id="chatInput" placeholder="type a message..." autocomplete="off" />
+    <button class="send-btn" id="sendBtn" title="Send">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 
   <div class="stage">
     <div class="mic-row">
@@ -399,7 +456,10 @@
       <span>falcon</span>
       <span class="voice-badge">MURF AI</span>
     </div>
-    <button class="clear-btn" id="clearBtn">clear chat</button>
+    <div class="action-btns">
+      <button class="export-btn" id="exportBtn">↓ export</button>
+      <button class="clear-btn" id="clearBtn">clear chat</button>
+    </div>
   </div>
 
   <script src="ui.js"></script>
