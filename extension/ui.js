@@ -72,7 +72,7 @@ function setUIState(state, text) {
 }
 
 // Add chat message to UI
-function addMessage(role, text) {
+function addMessage(role, text, skipAnim = false) {
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + role;
 
@@ -82,19 +82,42 @@ function addMessage(role, text) {
 
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
-  bubble.textContent = text;
 
   wrap.appendChild(label);
   wrap.appendChild(bubble);
   chatHistory.appendChild(wrap);
 
-  chatHistory.scrollTop = chatHistory.scrollHeight;
+  if (role === 'assistant' && !skipAnim) {
+    bubble.textContent = '';
+    let i = 0;
+    // Stream at ~25ms per character to roughly match speech pace
+    const timer = setInterval(() => {
+      bubble.textContent += text.charAt(i);
+      i++;
+      requestAnimationFrame(() => {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      });
+      if (i >= text.length) clearInterval(timer);
+    }, 35);
+  } else {
+    bubble.textContent = text;
+    requestAnimationFrame(() => {
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+  }
 }
 
-// Spacebar shortcut for mic
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && e.target === document.body) {
-    e.preventDefault();
-    micBtn.click();
+// Listen for PTT messages from the parent content script (content.js)
+window.addEventListener('message', (event) => {
+  if (event.data.action === 'ptt_start') {
+    // start recording
+    if (!window._isSpeaking && !window._isListening) {
+      micBtn.click();
+    }
+  } else if (event.data.action === 'ptt_stop') {
+    // stop recording
+    if (window._isListening && window._recognition) {
+      try { window._recognition.stop(); } catch(_) {}
+    }
   }
 });
